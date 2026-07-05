@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+.Python
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Pytest
+.pytest_cache/
+
+# Local secrets and env
+LifeOS/Scripts/.env
+.env
+
+# Postgres data and backups
+LifeOS/pgdata/
+LifeOS/Archive/Backups/
+
+# Node
+node_modules/
+
+# Ignore GitHub Actions artifacts
+.github/workflows/.cache/
