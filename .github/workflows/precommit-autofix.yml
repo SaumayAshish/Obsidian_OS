@@ -1,0 +1,47 @@
+name: Pre-commit Auto-fix
+
+on:
+  schedule:
+    # Weekly on Sunday at 04:00 UTC
+    - cron: '0 4 * * 0'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  autofix:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dev dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      - name: Run pre-commit (auto-fix)
+        run: |
+          pre-commit run --all-files || true
+
+      - name: Create PR if changes
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: apply pre-commit fixes"
+          branch: "precommit-fixes/${{ github.run_id }}"
+          title: "chore: apply pre-commit fixes"
+          body: |
+            This PR contains automated pre-commit fixes (flake8, formatting, and other hooks).
+            If changes are incorrect, please adjust or close the PR.
+          labels: automated, maintenance
+          assignees: ''
