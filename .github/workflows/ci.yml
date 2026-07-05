@@ -1,0 +1,95 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.10, 3.11]
+    env:
+      DATABASE_URL: postgresql://lifeos:${{ secrets.POSTGRES_PASSWORD }}@localhost:5432/lifeos
+      ENABLE_PGVECTOR: '${{ secrets.ENABLE_PGVECTOR || "false" }}'
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: lifeos
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB: lifeos
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready -U lifeos -d lifeos
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install system deps
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f LifeOS/Scripts/requirements.txt ]; then pip install -r LifeOS/Scripts/requirements.txt; fi
+
+      - name: Install dev tooling
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      - name: Run pre-commit (changed files only)
+        uses: pre-commit/action@v4
+
+      - name: Lint (flake8 + plugins)
+        run: |
+          flake8 LifeOS || true
+
+      - name: Wait for Postgres to be ready
+        run: |
+          for i in {1..20}; do
+            pg_isready -h localhost -p 5432 -U lifeos && break
+            echo "Waiting for Postgres..."
+            sleep 3
+          done
+
+      - name: Apply schema (only on main or manual runs)
+        if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+        env:
+          PGPASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+        run: |
+          psql "postgresql://lifeos:${{ secrets.POSTGRES_PASSWORD }}@localhost:5432/lifeos" -f LifeOS/Config/database/schema.sql
+
+      - name: Apply pgvector migration (optional)
+        if: (env.ENABLE_PGVECTOR == 'true') && (github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main')
+        env:
+          PGPASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+        run: |
+          psql "postgresql://lifeos:${{ secrets.POSTGRES_PASSWORD }}@localhost:5432/lifeos" -f LifeOS/Config/database/phase4_pgvector.sql || true
+
+      - name: Bootstrap DB with sample data
+        env:
+          DATABASE_URL: ${{ env.DATABASE_URL }}
+        run: |
+          python LifeOS/Scripts/bootstrap_db.py
+
+      - name: Run test suite
+        env:
+          DATABASE_URL: ${{ env.DATABASE_URL }}
+        run: |
+          pytest LifeOS/Scripts/tests -q
