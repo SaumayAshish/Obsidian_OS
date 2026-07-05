@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: lifeos_postgres
+    restart: unless-stopped
+    env_file:
+      - LifeOS/Scripts/.env
+    environment:
+      - POSTGRES_USER=lifeos
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-change_me}
+      - POSTGRES_DB=lifeos
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./LifeOS/pgdata:/var/lib/postgresql/data
+      - ./LifeOS/Archive/Backups:/backups
+      - ./LifeOS/Config/database/initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lifeos -d lifeos"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+# Notes:
+# - Put credentials in LifeOS/Scripts/.env (DATABASE_URL or POSTGRES_PASSWORD). Do NOT commit secrets.
+# - The initdb directory can contain SQL scripts that run at first start (e.g. enabling pgvector).
+# - If you need pgvector preinstalled, either use a custom Postgres image with pgvector or install the extension on the host DB.
+# - Start: docker-compose up -d
+# - To apply schema: psql $DATABASE_URL -f LifeOS/Config/database/schema.sql
