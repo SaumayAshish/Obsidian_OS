@@ -1,0 +1,38 @@
+# MCP server configurations for LifeOS
+# This file documents recommended MCP servers and how to run them for local development and CI.
+
+mcp_servers:
+  - name: postgres-local
+    type: postgresql
+    description: "Local PostgreSQL 15+ for LifeOS (recommended for Phase 3/4). Optionally enables pgvector for vector indexes."
+    docker_compose_service: |
+      postgres:
+        image: postgres:15
+        environment:
+          POSTGRES_USER: "lifeos"
+          POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-lifeos_pass}"
+          POSTGRES_DB: "lifeos"
+        ports:
+          - "5432:5432"
+        volumes:
+          - "./LifeOS/Archive/Backups:/backups"
+        healthcheck:
+          test: ["CMD-SHELL","pg_isready -U lifeos -d lifeos"]
+          interval: 10s
+          retries: 10
+    post_setup:
+      - "Install pgvector on the Postgres host if you plan to use Phase 4: https://github.com/pgvector/pgvector"
+      - "Apply schema: psql $DATABASE_URL -f LifeOS/Config/database/schema.sql"
+      - "If using pgvector, run: psql $DATABASE_URL -f LifeOS/Config/database/phase4_pgvector.sql"
+    env_note: |
+      Set DATABASE_URL in LifeOS/Scripts/.env (example: postgresql://lifeos:YOUR_PASS@localhost:5432/lifeos)
+      Do NOT commit real credentials. Use environment secrets in CI or .env locally.
+
+# Optional: local Ollama LLM server for AI/RAG development
+# (Only add if you run Ollama locally; left as documentation for Copilot sessions)
+  - name: ollama-local
+    type: llm
+    description: "Local Ollama server (optional). Copilot should prefer local-first LLMs and label cloud steps clearly."
+    notes: |
+      Start Ollama per vendor docs and set LIFEOS_OLLAMA_URL in LifeOS/Scripts/.env
+      Use local models for privacy and token-efficiency testing.
