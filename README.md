@@ -50,6 +50,22 @@ Security
 
 - Do not commit secrets. Use LifeOS/Scripts/.env (ignored) and GitHub secrets for CI.
 
+Architecture & Resume Highlights
+
+- Architecture overview: see ARCHITECTURE.md for an enterprise-grade, markdown-first architecture (Obsidian UI, Python sync layer, PostgreSQL structured store, pgvector-ready semantic index, and local-first LLM integration).
+
+- Resume-friendly highlights (copy to your CV):
+  - Built an Obsidian-first knowledge platform with a Markdown source-of-truth and a backend sync layer to PostgreSQL for structured analytics and semantic retrieval.
+  - Designed and implemented a token-efficient RAG pipeline (chunking, local embeddings, metadata-driven retrieval, context compression, local LLM integration).
+  - Developed CI/CD (GitHub Actions) with linting, pre-commit enforcement, scheduled maintenance, and auto-fix PR automation to maintain code quality.
+  - Implemented a phased pgvector migration strategy to add vector search without storing raw note content in the database.
+
+How to demo (recommended talking points)
+- Show Obsidian vault UI + dashboards (Dataview, Tasks).
+- Start Postgres, apply schema, run sync_vault.py to show structured rows appearing in the DB.
+- Run index_embeddings.py and semantic_search.py to demonstrate retrieval + compressed context sent to a local LLM.
+- Show CI pipeline status and an auto-generated maintenance PR.
+
 License
 
 - Add your license here.
