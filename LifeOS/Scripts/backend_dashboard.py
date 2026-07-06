@@ -1,0 +1,20 @@
+from __future__ import annotations
+
+import json
+
+from lifeos_sync.config import load_settings
+from lifeos_sync.dashboard_backend import backend_dashboard
+from lifeos_sync.db import build_session_factory
+from lifeos_sync.logging_config import configure_logging
+
+
+def main() -> None:
+    settings = load_settings()
+    configure_logging(settings.log_level)
+    session_factory = build_session_factory(settings)
+    with session_factory() as session:
+        print(json.dumps(backend_dashboard(session), indent=2, default=str, sort_keys=True))
+
+
+if __name__ == "__main__":
+    main()

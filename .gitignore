@@ -32,6 +32,10 @@ LifeOS/Scripts/.env
 LifeOS/pgdata/
 LifeOS/Archive/Backups/
 
+# Obsidian local UI state
+LifeOS/.obsidian/workspace.json
+LifeOS/.obsidian/workspace-mobile.json
+
 # Node
 node_modules/
 
